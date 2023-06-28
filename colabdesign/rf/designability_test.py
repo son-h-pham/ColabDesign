@@ -1,4 +1,5 @@
 import os,sys
+import math
 
 from colabdesign.mpnn import mk_mpnn_model
 from colabdesign.af import mk_af_model
@@ -46,6 +47,7 @@ def main(argv):
   ag.add(["num_recycles=" ],     3,   int, ["number of recycles"])
   ag.add(["rm_aa="],            "C",  str, ["disable specific amino acids from being sampled"])
   ag.add(["num_designs="  ],      1,  int, ["number of designs to evaluate"])
+  ag.add(["mpnn_weight="  ],   None,  str, ["name of ProteinMPNN weight to use"]
   ag.txt("-------------------------------------------------------------------------------------")
   o = ag.parse(argv)
 
@@ -123,7 +125,10 @@ def main(argv):
   
   print("running proteinMPNN...")
   sampling_temp = 0.1
-  mpnn_model = mk_mpnn_model()
+  if o.mpnn_weight is not None:
+    mpnn_model = mk_mpnn_model(model_name=o.mpnn_weight)
+  else:
+    mpnn_model = mk_mpnn_model()
   outs = []
   pdbs = []
   for m in range(o.num_designs):
@@ -138,7 +143,7 @@ def main(argv):
       af_model.opt["fix_pos"] = p[p < af_model._len]
 
     mpnn_model.get_af_inputs(af_model)
-    outs.append(mpnn_model.sample(num=o.num_seqs//batch_size, batch=batch_size, temperature=sampling_temp))
+    outs.append(mpnn_model.sample(num=math.ceil(o.num_seqs/batch_size), batch=batch_size, temperature=sampling_temp))
 
   if protocol == "binder":
     af_terms = ["plddt","i_ptm","i_pae","rmsd"]
